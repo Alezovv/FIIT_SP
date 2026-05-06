@@ -1415,6 +1415,4 @@ bool compare_keys(const tkey& lhs, const tkey& rhs) {
         "your code should be here...");
 }
 
-#include "b_tree.ipp"
-
 #endif
