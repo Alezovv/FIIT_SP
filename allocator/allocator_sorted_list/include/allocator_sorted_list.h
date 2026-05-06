@@ -1,72 +1,83 @@
 #ifndef MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_SORTED_LIST_H
 #define MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_SORTED_LIST_H
 
-#include <pp_allocator.h>
-#include <allocator_test_utils.h>
-#include <allocator_with_fit_mode.h>
+#include <../../allocator/include/allocator_test_utils.h>
+#include <../../allocator/include/allocator_with_fit_mode.h>
+#include <../../allocator/include/pp_allocator.h>
 #include <iterator>
 #include <mutex>
 
-class allocator_sorted_list final:
-    public smart_mem_resource,
-    public allocator_test_utils,
-    public allocator_with_fit_mode
-{
+struct allocator_header {
+    std::pmr::memory_resource* parent;
+    size_t total_size;
+    void* first_free_block;
+    allocator_with_fit_mode::fit_mode mode;
+    std::mutex mutex;
+};
 
-private:
-    
-    void *_trusted_memory;
+struct block_header {
+    size_t block_size;
+    void* next_free_block;
+};
 
-    static constexpr const size_t allocator_metadata_size = sizeof(std::pmr::memory_resource *) + sizeof(fit_mode) + sizeof(size_t) + sizeof(std::mutex) + sizeof(void*);
+class allocator_sorted_list final : public smart_mem_resource,
+                                    public allocator_test_utils,
+                                    public allocator_with_fit_mode {
+   private:
+    void* _trusted_memory;
+
+    static constexpr const size_t allocator_metadata_size = sizeof(std::pmr::memory_resource*) +
+                                                            sizeof(fit_mode) + sizeof(size_t) +
+                                                            sizeof(std::mutex) + sizeof(void*);
 
     static constexpr const size_t block_metadata_size = sizeof(void*) + sizeof(size_t);
 
-public:
+    allocator_header* get_header() const;
 
-    explicit allocator_sorted_list(
-            size_t space_size,
-            std::pmr::memory_resource *parent_allocator = nullptr,
-            allocator_with_fit_mode::fit_mode allocate_fit_mode = allocator_with_fit_mode::fit_mode::first_fit);
-    
-    allocator_sorted_list(
-        allocator_sorted_list const &other);
-    
-    allocator_sorted_list &operator=(
-        allocator_sorted_list const &other);
+    std::mutex& get_mutex() const;
 
-    allocator_sorted_list(
-        allocator_sorted_list &&other) noexcept;
-    
-    allocator_sorted_list &operator=(
-        allocator_sorted_list &&other) noexcept;
+    void* get_first_block_ptr() const;
+
+    void find_first_fit(size_t size, block_header*& target, block_header*& prev) const noexcept;
+
+    void find_best_fit(size_t size, block_header*& target, block_header*& prev) const noexcept;
+
+    void find_worst_fit(size_t size, block_header*& target, block_header*& prev) const noexcept;
+
+   public:
+    explicit allocator_sorted_list(size_t space_size,
+                                   std::pmr::memory_resource* parent_allocator = nullptr,
+                                   allocator_with_fit_mode::fit_mode allocate_fit_mode =
+                                       allocator_with_fit_mode::fit_mode::first_fit);
+
+    allocator_sorted_list(allocator_sorted_list const& other);
+
+    allocator_sorted_list& operator=(allocator_sorted_list const& other);
+
+    allocator_sorted_list(allocator_sorted_list&& other) noexcept;
+
+    allocator_sorted_list& operator=(allocator_sorted_list&& other) noexcept;
 
     ~allocator_sorted_list() override;
 
-private:
-    
-    [[nodiscard]] void *do_allocate_sm(
-        size_t size) override;
-    
-    void do_deallocate_sm(
-        void *at) override;
+   private:
+    [[nodiscard]] void* do_allocate_sm(size_t size) override;
+
+    void do_deallocate_sm(void* at) override;
 
     bool do_is_equal(const std::pmr::memory_resource&) const noexcept override;
-    
-    inline void set_fit_mode(
-        allocator_with_fit_mode::fit_mode mode) override;
+
+    inline void set_fit_mode(allocator_with_fit_mode::fit_mode mode) override;
 
     std::vector<allocator_test_utils::block_info> get_blocks_info() const noexcept override;
 
-private:
-
+   private:
     std::vector<allocator_test_utils::block_info> get_blocks_info_inner() const override;
 
-    class sorted_free_iterator
-    {
+    class sorted_free_iterator {
         void* _free_ptr;
 
-    public:
-
+       public:
         using iterator_category = std::forward_iterator_tag;
         using value_type = void*;
         using reference = void*&;
@@ -90,14 +101,12 @@ private:
         sorted_free_iterator(void* trusted);
     };
 
-    class sorted_iterator
-    {
+    class sorted_iterator {
         void* _free_ptr;
         void* _current_ptr;
         void* _trusted_memory;
 
-    public:
-
+       public:
         using iterator_category = std::forward_iterator_tag;
         using value_type = void*;
         using reference = void*&;
@@ -116,7 +125,7 @@ private:
 
         void* operator*() const noexcept;
 
-        bool occupied()const noexcept;
+        bool occupied() const noexcept;
 
         sorted_iterator();
 
@@ -133,4 +142,4 @@ private:
     sorted_iterator end() const noexcept;
 };
 
-#endif //MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_SORTED_LIST_H
+#endif  // MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_SORTED_LIST_H

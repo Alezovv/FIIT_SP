@@ -7,77 +7,85 @@
 #include <iterator>
 #include <mutex>
 
-class allocator_boundary_tags final :
-    public smart_mem_resource,
-    public allocator_test_utils,
-    public allocator_with_fit_mode
-{
+struct allocator_header {
+    std::pmr::memory_resource* parent;
+    size_t total_size;
+    void* first_free_block;
+    allocator_with_fit_mode::fit_mode mode;
+    std::mutex mutex;
+};
 
-private:
+struct block_meta {
+    size_t block_size;
+    void* parent_allocator;
+    void* prev_block;
+    void* next_free_block;  // свободный
+};
 
-    static constexpr const size_t allocator_metadata_size = sizeof(memory_resource*) + sizeof(allocator_with_fit_mode::fit_mode) +
-                                                            sizeof(size_t) + sizeof(std::mutex) + sizeof(void*);
+static size_t align(size_t size, size_t alignment = alignof(std::max_align_t)) {
+    return (size + alignment - 1) & ~(alignment - 1);
+}
 
-    static constexpr const size_t occupied_block_metadata_size = sizeof(size_t) + sizeof(void*) + sizeof(void*) + sizeof(void*);
+class allocator_boundary_tags final : public smart_mem_resource,
+                                      public allocator_test_utils,
+                                      public allocator_with_fit_mode {
+   private:
+    static constexpr const size_t allocator_metadata_size =
+        sizeof(memory_resource*) + sizeof(allocator_with_fit_mode::fit_mode) + sizeof(size_t) +
+        sizeof(std::mutex) + sizeof(void*);
+
+    static constexpr const size_t occupied_block_metadata_size =
+        sizeof(size_t) + sizeof(void*) + sizeof(void*) + sizeof(void*);
 
     static constexpr const size_t free_block_metadata_size = 0;
 
-    void *_trusted_memory;
+    void* _trusted_memory;
 
-public:
-    
+    allocator_header* get_header() const;
+    block_meta* get_block_meta(void* payload = nullptr) const;
+    block_meta* get_next_phys_block(block_meta* current) const;
+
+   public:
     ~allocator_boundary_tags() override;
-    
-    allocator_boundary_tags(allocator_boundary_tags const &other);
-    
-    allocator_boundary_tags &operator=(allocator_boundary_tags const &other);
-    
-    allocator_boundary_tags(
-        allocator_boundary_tags &&other) noexcept;
-    
-    allocator_boundary_tags &operator=(
-        allocator_boundary_tags &&other) noexcept;
 
-public:
-    
-    explicit allocator_boundary_tags(
-            size_t space_size,
-            std::pmr::memory_resource *parent_allocator = nullptr,
-            allocator_with_fit_mode::fit_mode allocate_fit_mode = allocator_with_fit_mode::fit_mode::first_fit);
+    allocator_boundary_tags(allocator_boundary_tags const& other);
 
-private:
-    
-    [[nodiscard]] void *do_allocate_sm(
-        size_t bytes) override;
-    
-    void do_deallocate_sm(
-        void *at) override;
+    allocator_boundary_tags& operator=(allocator_boundary_tags const& other);
+
+    allocator_boundary_tags(allocator_boundary_tags&& other) noexcept;
+
+    allocator_boundary_tags& operator=(allocator_boundary_tags&& other) noexcept;
+
+   public:
+    explicit allocator_boundary_tags(size_t space_size,
+                                     std::pmr::memory_resource* parent_allocator = nullptr,
+                                     allocator_with_fit_mode::fit_mode allocate_fit_mode =
+                                         allocator_with_fit_mode::fit_mode::first_fit);
+
+   private:
+    [[nodiscard]] void* do_allocate_sm(size_t bytes) override;
+
+    void do_deallocate_sm(void* at) override;
 
     bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override;
 
-public:
-    
-    inline void set_fit_mode(
-        allocator_with_fit_mode::fit_mode mode) override;
+   public:
+    inline void set_fit_mode(allocator_with_fit_mode::fit_mode mode) override;
 
-public:
-    
+   public:
     std::vector<allocator_test_utils::block_info> get_blocks_info() const override;
 
-private:
-
+   private:
     std::vector<allocator_test_utils::block_info> get_blocks_info_inner() const override;
 
-/** TODO: Highly recommended for helper functions to return references */
+    /** TODO: Highly recommended for helper functions to return references */
 
-    class boundary_iterator
-    {
+    class boundary_iterator {
         void* _occupied_ptr;
         bool _occupied;
         void* _trusted_memory;
 
-    public:
-
+       public:
         using iterator_category = std::bidirectional_iterator_tag;
         using value_type = void*;
         using reference = void*&;
@@ -116,4 +124,4 @@ private:
     boundary_iterator end() const noexcept;
 };
 
-#endif //MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_BOUNDARY_TAGS_H
+#endif  // MATH_PRACTICE_AND_OPERATING_SYSTEMS_ALLOCATOR_ALLOCATOR_BOUNDARY_TAGS_H
