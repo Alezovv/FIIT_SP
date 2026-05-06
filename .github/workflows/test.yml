@@ -1,0 +1,58 @@
+name: CMake CI
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Установка компилятора
+        run: |
+          sudo apt update
+          sudo apt install -y g++-13 cmake
+
+      - name: CMake конфигурация
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_CXX_STANDARD=20
+
+      - name: Сборка
+        run: |
+          cd build
+          make -j$(nproc)
+
+      # ===== ТЕСТЫ АЛЛОКАТОРОВ =====
+      - name: Запуск тестов глобальной кучи
+        run: |
+          cd build
+          ./allocator/tests/sys_prog_allctr_allctr_glbl_hp_tests
+
+      - name: Запуск тестов boundary tags
+        run: |
+          cd build
+          ./allocator/tests/sys_prog_allctr_allctr_bndry_tgs_tests
+
+      - name: Запуск тестов buddies system
+        run: |
+          cd build
+          ./allocator/tests/sys_prog_allctr_buddies_system_tests
+
+      - name: Запуск тестов red black tree
+        run: |
+          cd build
+          ./allocator/tests/sys_prog_allctr_red_blck_tree_tests
+
+      - name: Запуск тестов sorted list
+        run: |
+          cd build
+          ./allocator/tests/sys_prog_allctr_sorted_list_tests
+
+      # ===== ТЕСТЫ B-ДЕРЕВА =====
+      - name: Запуск тестов B-дерева
+        run: |
+          cd build
+          ./associative_container/indexing_tree/b_tree/tests/sys_prog_assctv_cntnr_indxng_tr_b_tr_tests
