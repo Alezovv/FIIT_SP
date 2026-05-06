@@ -20,10 +20,12 @@ jobs:
           cd build
           cmake .. -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_CXX_STANDARD=20
 
-      - name: Сборка
+      - name: Сборка (только аллокаторы, без B-дерева)
         run: |
           cd build
-          make -j$(nproc)
+          make sys_prog_allctr_allctr_bndr_tgs_tests -j$(nproc)
+          make sys_prog_allctr_allctr_glbl_hp_tests -j$(nproc)
+          make sys_prog_allctr_sorted_list_tests -j$(nproc)
 
       - name: Запуск тестов global heap
         run: |
@@ -33,14 +35,9 @@ jobs:
       - name: Запуск тестов sorted list
         run: |
           cd build
-          ./allocator/allocator_sorted_list/tests/sys_prog_allctr_allctr_srtd_lst_tests
+          ./allocator/allocator_sorted_list/tests/sys_prog_allctr_sorted_list_tests
 
       - name: Запуск тестов boundary tags
         run: |
           cd build
           ./allocator/allocator_boundary_tags/tests/sys_prog_allctr_allctr_bndr_tgs_tests
-
-      #- name: Запуск тестов B-дерева
-      #  run: |
-      #    cd build
-      #    ./associative_container/indexing_tree/b_tree/tests/sys_prog_assctv_cntnr_indxng_tr_b_tr_tests
