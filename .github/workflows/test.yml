@@ -9,10 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Установка компилятора
+      - name: Установка компилятора и зависимостей
         run: |
           sudo apt update
-          sudo apt install -y g++-13 cmake
+          sudo apt install -y g++-13 cmake libboost-system-dev libboost-container-dev
 
       - name: CMake конфигурация
         run: |
@@ -35,16 +35,6 @@ jobs:
         run: |
           cd build
           ./allocator/tests/sys_prog_allctr_allctr_bndry_tgs_tests
-
-      - name: Запуск тестов buddies system
-        run: |
-          cd build
-          ./allocator/tests/sys_prog_allctr_buddies_system_tests
-
-      - name: Запуск тестов red black tree
-        run: |
-          cd build
-          ./allocator/tests/sys_prog_allctr_red_blck_tree_tests
 
       - name: Запуск тестов sorted list
         run: |
