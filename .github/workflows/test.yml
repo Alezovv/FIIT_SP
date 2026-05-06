@@ -28,17 +28,17 @@ jobs:
       - name: Запуск тестов global heap
         run: |
           cd build
-          ./allocator/allocator_global_heap/sys_prog_allctr_allctr_glbl_hp_tests
+          ./allocator/allocator_global_heap/tests/sys_prog_allctr_allctr_gllb_hp_tests
 
       - name: Запуск тестов sorted list
         run: |
           cd build
-          ./allocator/allocator_sorted_list/sys_prog_allctr_sorted_list_tests
+          ./allocator/allocator_sorted_list/tests/sys_prog_allctr_allctr_srtd_lst_tests
 
       - name: Запуск тестов boundary tags
         run: |
           cd build
-          ./allocator/allocator_boundary_tags/sys_prog_allctr_allctr_bndr_tgs_tests
+          ./allocator/allocator_boundary_tags/tests/sys_prog_allctr_allctr_bndr_tgs_tests
 
       - name: Запуск тестов B-дерева
         run: |
